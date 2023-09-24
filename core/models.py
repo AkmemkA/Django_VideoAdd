@@ -1,8 +1,8 @@
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, \
+from django.utils import timezone
+from django.contrib.auth.models import AbstractBaseUser, UserManager, \
     PermissionsMixin
 from django.core.validators import RegexValidator
-from abc import ABC, abstractmethod
 
 
 class Video(models.Model):
@@ -10,20 +10,29 @@ class Video(models.Model):
     url = models.URLField()
 
 
-class UserManager(BaseUserManager, PermissionsMixin):
-    def create_user(self, phone_number, password=None):
-        """Creates and saves a User with number and password"""
-        if not phone_number:
-            raise ValueError('Users must have a phone number')
+class CustomUserManager(UserManager):
+    def _create_user(self, phone, password, **extra_fields):
+        if not phone:
+            raise ValueError("You must provide a phone")
 
-        user = self.model(phone_number)
-
+        user = self.model(phone=phone, **extra_fields)
         user.set_password(password)
-        user.save(using=self.db)
+        user.save(using=self._db)
+
         return user
 
+    def create_user(self, phone=None, password=None, **extra_fields):
+        extra_fields.setdefault('is_stuff', False)
+        extra_fields.setdefault('is_superuser', False)
+        return self._create_user(phone, password, **extra_fields)
 
-class User(AbstractBaseUser):
+    def create_superuser(self, phone=None, password=None, **extra_fields):
+        extra_fields.setdefault('is_stuff', True)
+        extra_fields.setdefault('is_superuser', True)
+        return self._create_user(phone, password, **extra_fields)
+
+
+class User(AbstractBaseUser, PermissionsMixin):
     phone_regex = RegexValidator(
         regex=r'^\+?1?\d{9,15}$',
         message="Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed."
@@ -33,31 +42,34 @@ class User(AbstractBaseUser):
         message="Password must be 8 to 16 characters and contain at least 1 digit."
     )
 
-    phone_number = models.CharField(validators=[phone_regex],
-                                    max_length=17,
-                                    unique=True,
-                                    )
+    phone = models.CharField(validators=[phone_regex],
+                             max_length=17,
+                             unique=True,
+                             )
     password = models.CharField(validators=[password_regex],
                                 max_length=16,
                                 )
 
-    USERNAME_FIELD = 'phone_number'
-    REQUIRED_FIELDS = []
+    is_active = models.BooleanField(default=True)
+    is_superuser = models.BooleanField(default=False)
+    is_stuff = models.BooleanField(default=False)
 
-    objects = UserManager()
+    USERNAME_FIELD = 'phone'
+    REQUIRED_FIELDS = [phone, password]
 
-    def __str__(self):
-        return self.phone_number
+    objects = CustomUserManager()
+
+    class Meta:
+        verbose_name = 'User'
+        verbose_name_plural = 'Users'
 
 
-class Statistics(ABC):
-    date_created = models.DateTimeField(auto_now=True)
+class Statistics(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
 
-    @abc.abstractmethod
-    def video(self):
-        pass
+    class Meta:
+        abstract = True
 
 
 class Watch(Statistics):
-    def video(self):
-        video = models.VideoField()
+    video = models.FileField()
