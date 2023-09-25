@@ -302,7 +302,8 @@
         <!--**********************************
             Sidebar end
         ***********************************-->
-
+        {% block content %}
+        {% endblock %}
 
         <!--**********************************
             Footer start
@@ -354,8 +355,7 @@
 	<script src="{% static './vendor/svganimation/vivus.min.js' %}"></script>
     <script src="{% static './vendor/svganimation/svg.animation.js' %}"></script>
 
-        {% block content %}
-        {% endblock %}
+
 
 </body>
 </html>

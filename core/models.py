@@ -6,8 +6,12 @@ from django.core.validators import RegexValidator
 
 
 class Video(models.Model):
-    file = models.FileField()
-    url = models.URLField()
+    file = models.FileField(verbose_name='Video File')
+    url = models.URLField(verbose_name='URL Link')
+
+    class Meta:
+        verbose_name = 'Video'
+        verbose_name_plural = 'Videos'
 
 
 class CustomUserManager(UserManager):
@@ -45,9 +49,11 @@ class User(AbstractBaseUser, PermissionsMixin):
     phone = models.CharField(validators=[phone_regex],
                              max_length=17,
                              unique=True,
+                             verbose_name='Phone number'
                              )
     password = models.CharField(validators=[password_regex],
                                 max_length=16,
+                                verbose_name='Password'
                                 )
 
     is_active = models.BooleanField(default=True)
@@ -65,11 +71,12 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 
 class Statistics(models.Model):
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True,
+                                      verbose_name='Date Created')
 
     class Meta:
         abstract = True
 
 
 class Watch(Statistics):
-    video = models.FileField()
+    video = models.FileField(verbose_name='Video File')
